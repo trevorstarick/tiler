@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"image/color"
@@ -18,6 +19,8 @@ import (
 	"github.com/paulmach/osm/osmapi"
 	"github.com/paulmach/osm/osmgeojson"
 	"github.com/tdewolff/canvas"
+
+	"github.com/pkg/profile"
 )
 
 var dejaVuSerif *canvas.FontFamily
@@ -72,7 +75,21 @@ func main() {
 		}
 	})
 
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
+	if os.Getenv("TESTING") == "" {
+		log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
+	} else {
+		defer profile.Start().Stop()
+		t := Tile{X: 8414, Y: 5384, Z: 14}
+		t.North, t.East, t.South, t.West = t.Bounds()
+		c := canvas.New(dimension, dimension)
+		draw(&t, c)
+		img := c.WriteImage(1.0)
+		w := bytes.Buffer{}
+		err := png.Encode(&w, img)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 type Tile struct {
